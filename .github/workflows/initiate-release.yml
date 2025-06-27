@@ -42,7 +42,7 @@ jobs:
           git config --local user.email "scottschreckengaust@users.noreply.github.com"
           git config --local user.name "Scott Schreckengaust"
           git checkout -b "release/$RELEASE"
-          SINCE=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq '.[].tagName')
+          SINCE="$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq -r '.[].tagName')"
           echo "$SINCE"
           CHANGEDFILES=$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')
           echo "changed-files=$CHANGEDFILES" >> $GITHUB_OUTPUT
