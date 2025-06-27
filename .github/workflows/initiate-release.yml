@@ -43,6 +43,7 @@ jobs:
           git config --local user.name "Scott Schreckengaust"
           git checkout -b "release/$RELEASE"
           SINCE="$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq -r '.[].tagName')"
+          if [ -z "$SINCE" ]; then SINCE="$(git rev-list --max-parents=0 HEAD)"; fi;
           echo "$SINCE"
           CHANGEDFILES="$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')"
           SRCDIRECTORIES="$(echo $CHANGEDFILES | jq -r '.[] | select(. |startswith("src\/"))' | cut -d'/' -f2 | sort -u | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')"
@@ -75,16 +76,32 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           ref: ${{ needs.release_when_tagged.outputs.release-branch }}
-      - name: add directory
+      - name: configure git
         run: |
           git config --local user.email "scottschreckengaust@users.noreply.github.com"
           git config --local user.name "Scott Schreckengaust"
           echo "::group::RUNNER object"
           echo "${{ toJson(runner) }}"
           echo "::endgroup::"
-          echo "${{ matrix.changed-directory }}" > "changelogs/${{ github.run_id }}"
-          git add "changelogs"
+      - name: bump
+        run: |
+          echo "TODO: BUMP THE PACKAGE VERSION"
+          echo "${{ github.run_id }}" >> "${{ matrix.changed-directory }}/__init__.py"
+      - name: build
+        run: |
+          echo "TODO: BUILD THE DISTRIBUTION"
+          mkdir -p "${{ matrix.changed-directory }}/dist/"
+          echo "${{ matrix.changed-directory }}" > "${{ matrix.changed-directory }}/dist/${{ github.run_id }}"
+      - name: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: package-${{ matrix.changed-directory }}
+          path: ${{ matrix.changed-directory }}/dist/
+      - name: record
+        run: |
+          git add "${{ matrix.changed-directory }}"
           git commit -m "chore: add ${{ matrix.changed-directory }}"
+          git pull
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
