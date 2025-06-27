@@ -1,5 +1,14 @@
+---
+# Look for changes since the last release, bumps those versions, and creates a pull request.
+#
+# 1. Find directories that changed since the last release, since first commit.
+# 2. If there are changes, then create a release branch formatted as `release/YYYY.MM.YYYYMMDDHHIISS`
+# 3. Now for each directory that changed, bump the package on the release branch
+# 4. Create a PR and watch it build.
+
 on:
   workflow_dispatch:
+
 permissions:
     actions: none
     attestations: none
@@ -16,90 +25,93 @@ permissions:
     repository-projects: none
     security-events: none
     statuses: none
+
 jobs:
-  release_when_tagged:
+
+  look-for-changes:
     runs-on: ubuntu-latest
     outputs:
-      changed-directories: ${{ steps.create-pull-request.outputs.changed-directories }}
-      release-branch: ${{ steps.create-pull-request.outputs.release-branch }}
+      changed-directories: ${{ steps.find-changed-directories.outputs.changed-directories }}
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Debug
         run: |
           echo "::group::GITHUB object"
           echo "${{ toJson(github) }}"
           echo "::endgroup::"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
-      - name: create pull request
-        id: create-pull-request
+      - name: find changed directories
+        id: find-changed-directories
         run: |
-          RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
-          git config --local user.email "scottschreckengaust@users.noreply.github.com"
-          git config --local user.name "Scott Schreckengaust"
-          git checkout -b "release/$RELEASE"
           SINCE="$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq -r '.[].tagName')"
           if [ -z "$SINCE" ]; then SINCE="$(git rev-list --max-parents=0 HEAD)"; fi;
           echo "$SINCE"
           CHANGEDFILES="$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')"
           SRCDIRECTORIES="$(echo $CHANGEDFILES | jq -r '.[] | select(. |startswith("src\/"))' | cut -d'/' -f2 | sort -u | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')"
           echo "changed-directories=$SRCDIRECTORIES" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+  create-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release-branch: ${{ steps.make-a-branch.outputs.release-branch }}
+    needs: [look-for-changes]
+    if: ${{ needs.look-for-changes.outputs.changed-directories != '[]' && needs.look-for-changes.outputs.changed-directories != '' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: make a branch
+        id: make-a-branch
+        run: |
+          RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
+          RELEASEBRANCH="release/$RELEASE"
+          git config --local user.email "scottschreckengaust@users.noreply.github.com"
+          git config --local user.name "Scott Schreckengaust"
+          git checkout -b "release/$RELEASE"
           mkdir -p changelogs
           echo "## [$RELEASE] - " > "changelogs/$RELEASE.md"
           echo "$SRCDIRECTORIES" >> "changelogs/$RELEASE.md"
           git add "changelogs"
-          git commit -m "chore: release $RELEASE changelogs"
-          git push --set-upstream origin "release/$RELEASE"
-          RELEASEBRANCH="release/$RELEASE"
+          git commit -m "chore: $RELEASE"
+          git push --set-upstream origin "$RELEASEBRANCH"
           echo "release-branch=$RELEASEBRANCH" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-  run_changed_files:
-    if: ${{ needs.release_when_tagged.outputs.changed-directories != '[]' && needs.release_when_tagged.outputs.changed-directories != '' }}
+    
+  bump-changed-directories:
     strategy:
       fail-fast: true
       matrix:
-        changed-directory: ${{ fromJson(needs.release_when_tagged.outputs.changed-directories) }}
+        changed-directory: ${{ fromJson(needs.look-for-changes.outputs.changed-directories) }}
       max-parallel: 1
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [release_when_tagged]
+    needs: [look-for-changes, create-branch]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          ref: ${{ needs.release_when_tagged.outputs.release-branch }}
+          ref: ${{ needs.create-branch.outputs.release-branch }}
       - name: configure git
         run: |
           git config --local user.email "scottschreckengaust@users.noreply.github.com"
           git config --local user.name "Scott Schreckengaust"
-          echo "::group::RUNNER object"
-          echo "${{ toJson(runner) }}"
-          echo "::endgroup::"
       - name: bump
         run: |
-          echo "TODO: BUMP THE PACKAGE VERSION"
+          echo "TODO: ACTUALLY BUMP THE PACKAGE VERSION"
           echo "${{ github.run_id }}" >> "src/${{ matrix.changed-directory }}/__init__.py"
-      - name: build
-        run: |
-          echo "TODO: BUILD THE DISTRIBUTION"
-          mkdir -p "src/${{ matrix.changed-directory }}/dist/"
-          echo "${{ matrix.changed-directory }}" > "src/${{ matrix.changed-directory }}/dist/${{ github.run_id }}"
-      - name: upload
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: package-${{ matrix.changed-directory }}
-          path: src/${{ matrix.changed-directory }}/dist/
-      - name: record
+      - name: push
         run: |
           git add "src/${{ matrix.changed-directory }}"
-          git commit -m "chore: add src/${{ matrix.changed-directory }}"
+          git commit -m "chore: bump src/${{ matrix.changed-directory }}"
           git pull
           git push
 
@@ -107,15 +119,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [release_when_tagged, run_changed_files]
+    needs: [look-for-changes, create-branch, bump-changed-directories]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          ref: ${{ needs.release_when_tagged.outputs.release-branch }}
+          ref: ${{ needs.create-branch.outputs.release-branch }}
       - name: create pr
         run: |
-          gh pr create --base "${{ github.ref_name }}" --head "${{ needs.release_when_tagged.outputs.release-branch }}" --title "chore: ${{ needs.release_when_tagged.outputs.release-branch }}" --body "# ${{ needs.release_when_tagged.outputs.release-branch }} triggered ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
+          gh pr create --base "${{ github.ref_name }}" --head "${{ needs.create-branch.outputs.release-branch }}" --title "chore: ${{ needs.create-branch.outputs.release-branch }}" --body "# ${{ needs.create-branch.outputs.release-branch }} triggered ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 

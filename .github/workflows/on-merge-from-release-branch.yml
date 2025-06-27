@@ -1,3 +1,6 @@
+---
+# Creates a tag on `main` when a PR is merged from a `release/**`
+
 on:
   pull_request:
     types:
@@ -22,22 +25,19 @@ permissions:
     statuses: none
 jobs:
   tag_on_release_merge:
-    if: github.event.pull_request.merged == true && startsWith( github.event.pull_request.head.ref, 'release/')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Debug
-        run: |
-          echo "::group::GITHUB object"
-          echo "${{ toJson(github) }}"
-          echo "::endgroup::"
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_TOKEN }}
       - name: Create Tag
+        id: create-tag
         run: |
           TAG=$(echo "${{ github.event.pull_request.head.ref }}" | cut -d'/' -f2)
+          if [ -z "$TAG" ]; then echo "Release cannot be empty"; exit 1; fi;
           git config --local user.email "scottschreckengaust@users.noreply.github.com"
           git config --local user.name "Scott Schreckengaust"
           git tag -a "$TAG" -m "Release $TAG"
