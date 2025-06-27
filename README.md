@@ -1,8 +1,8 @@
 # README
 
-release/2025.6.20250626205723
+release/2025.6.20250626210056
 
-
+```
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Create release
         env:
@@ -18,3 +18,13 @@ release/2025.6.20250626205723
           cat RELEASE_NOTES.md GENERATED_NOTES.md | gh release edit "$VERSION" \
             --draft=false \
             --notes-file -
+```
+
+
+```
+      - name: Debug
+        run: |
+          echo "::group::GITHUB object"
+          echo "${{ toJson(github) }}"
+          echo "::endgroup::"
+```
