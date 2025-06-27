@@ -5,15 +5,22 @@ on:
     branches:
       - main
 jobs:
-  run_on_merge:
-    if: github.event.pull_request.merged == true
+  tag_on_release_merge:
+    if: github.event.pull_request.merged == true && startsWith( github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
     steps:
-      - name: This is a release merge
-        if: startsWith( github.event.pull_request.head.ref, 'release/')
+      - name: Debug
         run: |
-          echo "The head ref branch name is: ${{ github.event.pull_request.head.ref }}" # Access head branch ref
-          echo "The base ref branch name is: ${{ github.event.pull_request.base.ref }}" # Access base branch ref
           echo "::group::GITHUB object"
           echo "${{ toJson(github) }}"
           echo "::endgroup::"
+      - uses: actions/checkout@v4
+        with:
+          ref: github.sha
+      - name: Create Tag
+        run: |
+          # git config --local user.email "action@github.com"
+          # git config --local user.name "GitHub Action"
+          git tag -a "v${{ github.run_number }}" -m "Release v${{ github.run_number }}"
+      - name: Push Tag
+        run: git push origin "v${{ github.run_number }}"
