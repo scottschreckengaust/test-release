@@ -54,7 +54,6 @@ jobs:
           git add "changelogs"
           git commit -m "chore: release $RELEASE changelogs"
           git push --set-upstream origin "release/$RELEASE"
-          gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "chore: release $RELEASE" --body "# $RELEASE triggered ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
           RELEASEBRANCH="release/$RELEASE"
           echo "release-branch=$RELEASEBRANCH" >> $GITHUB_OUTPUT
         env:
@@ -103,5 +102,20 @@ jobs:
           git commit -m "chore: add src/${{ matrix.changed-directory }}"
           git pull
           git push
+
+  create_pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: [release_when_tagged, run_changed_files]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: ${{ needs.release_when_tagged.outputs.release-branch }}
+      - name: create pr
+        run: |
+          gh pr create --base "${{ github.ref_name }}" --head "${{ needs.release_when_tagged.outputs.release-branch }}" --title "chore: ${{ needs.release_when_tagged.outputs.release-branch }}" --body "# ${{ needs.release_when_tagged.outputs.release-branch }} triggered ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
