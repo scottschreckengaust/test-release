@@ -4,10 +4,28 @@ on:
       - closed
     branches:
       - main
+permissions:
+    actions: none
+    attestations: none
+    checks: none
+    contents: none
+    deployments: none
+    discussions: none
+    id-token: none
+    issues: none
+    models: none
+    packages: none
+    pages: none
+    pull-requests: none
+    repository-projects: none
+    security-events: none
+    statuses: none
 jobs:
   tag_on_release_merge:
     if: github.event.pull_request.merged == true && startsWith( github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Debug
         run: |
@@ -15,12 +33,10 @@ jobs:
           echo "${{ toJson(github) }}"
           echo "::endgroup::"
       - uses: actions/checkout@v4
-        with:
-          ref: github.sha
       - name: Create Tag
         run: |
-          # git config --local user.email "action@github.com"
-          # git config --local user.name "GitHub Action"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git tag -a "v${{ github.run_number }}" -m "Release v${{ github.run_number }}"
       - name: Push Tag
         run: git push origin "v${{ github.run_number }}"
