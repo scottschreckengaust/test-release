@@ -64,6 +64,7 @@ jobs:
       fail-fast: true
       matrix:
         changed-file: ${{ fromJson(needs.release_when_tagged.outputs.changed-files) }}
+      max-parallel: 1
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,7 +81,7 @@ jobs:
           echo "::group::RUNNER object"
           echo "${{ toJson(runner) }}"
           echo "::endgroup::"
-          echo "${{ matrix.changed-file }} > "changelogs/${{ github.run_id }}"
+          echo "${{ matrix.changed-file }}" > "changelogs/${{ github.run_id }}"
           git add "changelogs"
           git commit -m "chore: add ${{ matrix.changed-file }}"
           git push
