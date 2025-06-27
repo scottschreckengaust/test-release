@@ -19,6 +19,9 @@ permissions:
 jobs:
   release_when_tagged:
     runs-on: ubuntu-latest
+    outputs:
+      changed-files: ${{ steps.create-pull-request.outputs.changed-files }}
+      release-branch: ${{ steps.create-pull-request.outputs.release-branch }}
     permissions:
       contents: write
       pull-requests: write
@@ -33,16 +36,51 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
       - name: create pull request
+        id: create-pull-request
         run: |
           RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
           git config --local user.email "scottschreckengaust@users.noreply.github.com"
           git config --local user.name "Scott Schreckengaust"
           git checkout -b "release/$RELEASE"
+          SINCE=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq '.[].tagName')
           mkdir -p changelogs
           echo "## [$RELEASE] - " > "changelogs/$RELEASE.md"
           git add "changelogs"
           git commit -m "chore: release $RELEASE changelogs"
           git push --set-upstream origin "release/$RELEASE"
           gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "chore: release $RELEASE" --body "$RELEASE triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
+          CHANGEDFILES=$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')
+          echo "changed-files=$CHANGEDFILES" >> $GITHUB_OUTPUT
+          RELEASEBRANCH="release/$RELEASE"
+          echo "release-branch=$RELEASEBRANCH" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+  run_changed_files:
+    if: ${{ needs.release_when_tagged.outputs.changed-files != '[] && needs.release_when_tagged.outputs.changed-files != '' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        changed-file: ${{ needs.release_when_tagged.outputs.changed-files }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: [release_when_tagged]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: ${{ needs.release_when_tagged.outputs.release-branch }}
+      - name: add file
+        run: |
+          git config --local user.email "scottschreckengaust@users.noreply.github.com"
+          git config --local user.name "Scott Schreckengaust"
+          echo "::group::RUNNER object"
+          echo "${{ toJson(runner) }}"
+          echo "::endgroup::"
+          echo "${{ matrix.changed-file }} > "changelogs/${{ github.run_id }}"
+          git add "changelogs"
+          git commit -m "chore: add ${{ matrix.changed-file }}"
+          git push
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
