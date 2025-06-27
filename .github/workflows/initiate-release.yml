@@ -35,6 +35,10 @@ jobs:
         run: |
           RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
           git checkout -b "release/$RELEASE"
+          mkdir -p changelogs
+          echo "## [$RELEASE] - " > "changelogs/$RELEASE.md"
+          git add "changelogs"
+          git commit -m "chore: release $RELEASE changelogs"
           git push --set-upstream origin "release/$RELEASE"
           gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "Release $RELEASE" --body "$RELEASE Triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
         env:
