@@ -57,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
   run_changed_files:
-    if: ${{ needs.release_when_tagged.outputs.changed-files != '[] && needs.release_when_tagged.outputs.changed-files != '' }}
+    if: ${{ needs.release_when_tagged.outputs.changed-files != '[]' && needs.release_when_tagged.outputs.changed-files != '' }}
     strategy:
       fail-fast: true
       matrix:
