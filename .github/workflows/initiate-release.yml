@@ -1,0 +1,31 @@
+on:
+  workflow_dispatch:
+permissions:
+    actions: none
+    attestations: none
+    checks: none
+    contents: none
+    deployments: none
+    discussions: none
+    id-token: none
+    issues: none
+    models: none
+    packages: none
+    pages: none
+    pull-requests: none
+    repository-projects: none
+    security-events: none
+    statuses: none
+jobs:
+  release_when_tagged:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: create pull request
+        run: |
+          RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
+          gh pr create --base "main" --head "release/$RELEASE" --title "Release $RELEASE" --body "$RELEASE Triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
