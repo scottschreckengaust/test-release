@@ -1,9 +1,10 @@
 ---
-# This workflow initiates a release by looking for changes, bumping packages, and creating a pull request
+# Look for changes since the last release, bumps those versions, and creates a pull request.
 #
 # 1. Find directories that changed since the last release, since first commit.
-# 2. Create a release branch formatted as `release/YYYY.MM.YYYYMMDDHHIISS`
-# 2. 
+# 2. If there are changes, then create a release branch formatted as `release/YYYY.MM.YYYYMMDDHHIISS`
+# 3. Now for each directory that changed, bump the package on the release branch
+# 4. Create a PR and watch it build.
 
 on:
   workflow_dispatch:
@@ -84,7 +85,7 @@ jobs:
           git push --set-upstream origin "$RELEASEBRANCH"
           echo "release-branch=$RELEASEBRANCH" >> $GITHUB_OUTPUT
     
-  run-changed-directories:
+  bump-changed-directories:
     strategy:
       fail-fast: true
       matrix:
@@ -118,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [look-for-changes, create-branch, run-changed-directories]
+    needs: [look-for-changes, create-branch, bump-changed-directories]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
