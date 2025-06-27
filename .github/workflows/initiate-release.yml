@@ -43,14 +43,16 @@ jobs:
           git config --local user.name "Scott Schreckengaust"
           git checkout -b "release/$RELEASE"
           SINCE=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName | jq '.[].tagName')
+          echo "$SINCE"
+          CHANGEDFILES=$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')
+          echo "changed-files=$CHANGEDFILES" >> $GITHUB_OUTPUT
           mkdir -p changelogs
           echo "## [$RELEASE] - " > "changelogs/$RELEASE.md"
+          echo "$CHANGEDFILES" >> "changelogs/$RELEASE.md"
           git add "changelogs"
           git commit -m "chore: release $RELEASE changelogs"
           git push --set-upstream origin "release/$RELEASE"
-          gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "chore: release $RELEASE" --body "$RELEASE triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
-          CHANGEDFILES=$(git diff --name-only "$SINCE" HEAD | sed 's/^\.\///' | jq -R -s -c 'split("\n")[:-1]')
-          echo "changed-files=$CHANGEDFILES" >> $GITHUB_OUTPUT
+          gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "chore: release $RELEASE" --body "# $RELEASE triggered ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
           RELEASEBRANCH="release/$RELEASE"
           echo "release-branch=$RELEASEBRANCH" >> $GITHUB_OUTPUT
         env:
