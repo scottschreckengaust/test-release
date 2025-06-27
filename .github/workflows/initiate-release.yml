@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        changed-file: ${{ needs.release_when_tagged.outputs.changed-files }}
+        changed-file: ${{ fromJson(needs.release_when_tagged.outputs.changed-files) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
