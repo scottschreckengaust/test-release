@@ -9,7 +9,11 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - name: Get the head ref branch name
+      - name: This is a release merge
+        if: startsWith( github.event.pull_request.head.ref, 'release/')
         run: |
           echo "The head ref branch name is: ${{ github.event.pull_request.head.ref }}" # Access head branch ref
           echo "The base ref branch name is: ${{ github.event.pull_request.base.ref }}" # Access base branch ref
+          echo "::group::GITHUB object"
+          echo "${{ toJson(github) }}"
+          echo "::endgroup::"
