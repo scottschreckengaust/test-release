@@ -34,6 +34,8 @@ jobs:
       - name: create pull request
         run: |
           RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
+          git config --local user.email "scottschreckengaust@users.noreply.github.com"
+          git config --local user.name "Scott Schreckengaust"
           git checkout -b "release/$RELEASE"
           mkdir -p changelogs
           echo "## [$RELEASE] - " > "changelogs/$RELEASE.md"
