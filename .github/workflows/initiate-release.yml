@@ -34,6 +34,7 @@ jobs:
       - name: create pull request
         run: |
           RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
-          gh pr create --base "main" --head "release/$RELEASE" --title "Release $RELEASE" --body "$RELEASE Triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
+          git checkout -b "release/$RELEASE"
+          gh pr create --base "${{ github.ref_name }}" --head "release/$RELEASE" --title "Release $RELEASE" --body "$RELEASE Triggered by ${{ github.workflow}} by @${{ github.triggering_actor }} for @${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
