@@ -33,10 +33,10 @@ jobs:
           echo "${{ toJson(github) }}"
           echo "::endgroup::"
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
       - name: Create Tag
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
           git tag -a "v${{ github.run_number }}" -m "Release v${{ github.run_number }}"
       - name: Push Tag
         run: git push origin "v${{ github.run_number }}"
