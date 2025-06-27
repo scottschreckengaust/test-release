@@ -86,21 +86,21 @@ jobs:
       - name: bump
         run: |
           echo "TODO: BUMP THE PACKAGE VERSION"
-          echo "${{ github.run_id }}" >> "${{ matrix.changed-directory }}/__init__.py"
+          echo "${{ github.run_id }}" >> "src/${{ matrix.changed-directory }}/__init__.py"
       - name: build
         run: |
           echo "TODO: BUILD THE DISTRIBUTION"
-          mkdir -p "${{ matrix.changed-directory }}/dist/"
-          echo "${{ matrix.changed-directory }}" > "${{ matrix.changed-directory }}/dist/${{ github.run_id }}"
+          mkdir -p "src/${{ matrix.changed-directory }}/dist/"
+          echo "${{ matrix.changed-directory }}" > "src/${{ matrix.changed-directory }}/dist/${{ github.run_id }}"
       - name: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: package-${{ matrix.changed-directory }}
-          path: ${{ matrix.changed-directory }}/dist/
+          path: src/${{ matrix.changed-directory }}/dist/
       - name: record
         run: |
-          git add "${{ matrix.changed-directory }}"
-          git commit -m "chore: add ${{ matrix.changed-directory }}"
+          git add "src/${{ matrix.changed-directory }}"
+          git commit -m "chore: add src/${{ matrix.changed-directory }}"
           git pull
           git push
         env:
