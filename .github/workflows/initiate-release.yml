@@ -23,6 +23,14 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - name: Debug
+        run: |
+          echo "::group::GITHUB object"
+          echo "${{ toJson(github) }}"
+          echo "::endgroup::"
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
       - name: create pull request
         run: |
           RELEASE="$(date +'%Y.%m.%Y%m%d%H%I%S')"
