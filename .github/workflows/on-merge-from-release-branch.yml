@@ -1,0 +1,15 @@
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+jobs:
+  run_on_merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the head ref branch name
+        run: |
+          echo "The head ref branch name is: ${{ github.event.pull_request.head.ref }}" # Access head branch ref
+          echo "The base ref branch name is: ${{ github.event.pull_request.base.ref }}" # Access base branch ref
