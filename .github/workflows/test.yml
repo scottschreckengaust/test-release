@@ -1,0 +1,26 @@
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: scottschreckengaust/git-secrets@feature/git-secrets-github-action
+on:
+  push:
+permissions:
+    actions: none
+    attestations: none
+    checks: none
+    contents: none
+    deployments: none
+    discussions: none
+    id-token: none
+    issues: none
+    models: none
+    packages: none
+    pages: none
+    pull-requests: none
+    repository-projects: none
+    security-events: none
+    statuses: none
